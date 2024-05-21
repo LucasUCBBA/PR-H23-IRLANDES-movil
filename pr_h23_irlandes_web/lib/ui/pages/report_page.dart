@@ -5,6 +5,9 @@ import 'package:pr_h23_irlandes_web/data/model/report_model.dart';
 import 'package:pr_h23_irlandes_web/data/remote/reports_remote_datasource.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_psico.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/custom_text_field.dart';
+import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
+import 'package:pr_h23_irlandes_web/data/remote/user_remote_datasource.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /*
     Pagina donde se listan los reportes psicologicos, de manera similar a las postulaciones.
@@ -24,28 +27,50 @@ class _ReportPage extends State<ReportPage> {
   ReportRemoteDatasourceImpl reportRemoteDatasourceImpl =
       ReportRemoteDatasourceImpl();
   List<ReportModel> reports = [], filterList = [];
+  final PersonaDataSourceImpl personaDataSource = PersonaDataSourceImpl();
+  PersonaModel? usuario;
   bool isLoading = true;
   bool isSelected = true;
   TextEditingController searchController = TextEditingController();
-  String level = '', grade = '', status = '';
+  String level = '', grade = '', status = '', userRol = '', personaId = '';
   List<String> gradeList = ['Cualquiera'];
+  List<String> levelList = ['Cualquiera'];
 
   @override
   void initState() {
-    status = 'Pendiente';
-    reportRemoteDatasourceImpl.getReport().then((value) => {
-          isLoading = true,
-          reports = value,
-          filterList = FilterReportsList(
-              status, level, grade, searchController.text.trim()),
-          if (mounted)
-            {
-              setState(() {
-                isLoading = false;
-              })
-            }
+  super.initState();
+  getId().then((_) {
+    // Configurar levelList basado en el rol del usuario
+    _configureListsAndDefaultValues();
+    setState(() {
+      status = 'Pendiente';
+      reportRemoteDatasourceImpl.getReport().then((value) {
+        setState(() {
+          isLoading = true;
+          reports = value;
+          // Filtrar los reportes según el nivel del usuario
+          filterList = FilterReportsList(status, level, grade, searchController.text.trim(), userRol);
+          isLoading = false;
         });
-    super.initState();
+      });
+    });
+  });
+}
+void _configureListsAndDefaultValues() {
+  if (userRol == 'psicologia_uno') {
+    levelList = ['Cualquiera', 'Inicial', 'Primaria'];
+    level = 'Inicial';
+  } else if (userRol == 'psicologia_dos') {
+    levelList = ['Cualquiera', 'Secundaria'];
+    level = 'Secundaria';
+  }
+}
+
+  Future<void> getId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    personaId = prefs.getString('personId')!;
+    usuario = await personaDataSource.getPersonFromId(personaId);
+    userRol = usuario?.rol ?? '';
   }
 
   @override
@@ -78,30 +103,27 @@ class _ReportPage extends State<ReportPage> {
 
   // ignore: non_constant_identifier_names
   List<ReportModel> FilterReportsList(
-    String status,
-    String? level,
-    String? grade,
-    String? searchValue,
-  ) {
-    return reports.where((report) {
-      bool matchesLevel =
-          level == null || level.isEmpty || report.level == level;
-      bool matchesGrade =
-          grade == null || grade.isEmpty || report.grade == grade;
-      bool matchesStudent = true;
+  String status,
+  String? level,
+  String? grade,
+  String? searchValue,
+  String userRol,
+) {
+  return reports.where((report) {
+    bool matchesLevel = level == null || level.isEmpty || report.level == level || level == 'Cualquiera';
+    bool matchesGrade = grade == null || grade.isEmpty || report.grade == grade || grade == 'Cualquiera';
+    bool matchesStudent = searchValue == null || searchValue.isEmpty || report.fullname.toUpperCase().contains(searchValue.toUpperCase());
 
-      if (searchValue != null && searchValue.isNotEmpty) {
-        matchesStudent =
-            ("${report.fullname}")
-                    .toUpperCase()
-                    .contains(searchValue.toUpperCase());
-                
-      }
+    bool matchesUserRole = true;
+    if (userRol == 'psicologia_uno') {
+      matchesUserRole = report.level != 'Secundaria';
+    } else if (userRol == 'psicologia_dos') {
+      matchesUserRole = report.level == 'Secundaria';
+    }
 
-      return matchesLevel && matchesGrade && matchesStudent;
-    }).toList();
-  }
-
+    return matchesLevel && matchesGrade && matchesStudent && matchesUserRole;
+  }).toList();
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,97 +225,97 @@ class _ReportPage extends State<ReportPage> {
                         ),
                         const SizedBox(height: 10),
                         Padding(
-                            padding: const EdgeInsets.only(left: 50, right: 50),
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  flex:
-                                      2, // Ajusta el flex para controlar el ancho
-                                  child: CustomTextField(
-                                    label: 'Buscar',
-                                    controller: searchController,
-                                    type: TextInputType.name,
-                                    onChanged: (value) => {
+                          padding: const EdgeInsets.only(left: 50, right: 50),
+                          child: Row(
+                            children: [
+                              Flexible(
+                                flex: 2,
+                                child: CustomTextField(
+                                  label: 'Buscar',
+                                  controller: searchController,
+                                  type: TextInputType.name,
+                                  onChanged: (value) {
+                                    setState(() {
                                       filterList = FilterReportsList(
-                                          status,
-                                          level,
-                                          grade,
-                                          searchController.text.trim()),
-                                      setState(() {})
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    decoration: customDecoration('Nivel'),
-                                    value: 'Cualquiera',
-                                    isDense: true,
-                                    items: [
-                                      'Cualquiera',
-                                      'Inicial',
-                                      'Primaria',
-                                      'Secundaria'
-                                    ].map((String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
+                                        status,
+                                        level,
+                                        grade,
+                                        searchController.text.trim(),
+                                        userRol,
                                       );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      grade = '';
-                                      switch (value) {
-                                        case 'Cualquiera':
-                                          gradeList = ['Cualquiera'];
-                                          level = '';
-                                          break;
-                                        case 'Inicial':
-                                          gradeList = [ 'Cualquiera', '1ra sección','2da sección'];
-                                          level = value!;
-                                          break;
-                                        default: 
-                                          gradeList = ['Cualquiera', '1er','2do','3er','4to','5to', '6to'];                                          
-                                          level = value!;
-                                      }
-                                      setState(() {});
-                                      filterList = FilterReportsList(
-                                          status,
-                                          level,
-                                          grade,
-                                          searchController.text.trim());
-                                    },
-                                  ),
+                                    });
+                                  },
                                 ),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: grade == '' ? 'Cualquiera': grade,
-                                    isDense: true,
-                                    decoration: customDecoration('Curso'),
-                                    items: gradeList.map((String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      if (value! == 'Cualquiera') {
-                                        grade = '';
+                              ),
+                              const SizedBox(width: 20),
+                              // DropdownButtonFormField para el nivel
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  decoration: customDecoration('Nivel'),
+                                  value: levelList.contains(level) ? level : levelList.first,
+                                  isDense: true,
+                                  items: levelList.map((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? value) {
+                                    setState(() {
+                                      level = value ?? '';
+                                      List<String> tempGradeList = [];
+                                      if (level == 'Inicial') {
+                                        tempGradeList = ['Cualquiera', '1ra sección', '2da sección'];
+                                      } else if (level == 'Primaria' || level == 'Secundaria') {
+                                        tempGradeList = ['Cualquiera', '1er', '2do', '3er', '4to', '5to', '6to'];
                                       } else {
-                                        grade = value;
+                                        tempGradeList = ['Cualquiera'];
                                       }
-                                      setState(() {});
+                                      gradeList = tempGradeList;
+                                      if (grade != 'Cualquiera' && !gradeList.contains(grade)) {
+                                        grade = 'Cualquiera';
+                                      }
+                                      // Filtrar los reportes según el nivel y grado seleccionados
                                       filterList = FilterReportsList(
-                                          status,
-                                          level,
-                                          grade,
-                                          searchController.text.trim());
-                                    },
-                                  ),
+                                        status,
+                                        level,
+                                        grade,
+                                        searchController.text.trim(),
+                                        userRol,
+                                      );
+                                    });
+                                  },
                                 ),
-                              ],
-                            )
+                              ),
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: gradeList.contains(grade) ? grade : gradeList.first,
+                                  isDense: true,
+                                  decoration: customDecoration('Curso'),
+                                  items: gradeList.map((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? value) {
+                                    setState(() {
+                                      grade = value ?? '';
+                                      // Filtrar los reportes según el nivel y grado seleccionados
+                                      filterList = FilterReportsList(
+                                        status,
+                                        level,
+                                        grade,  
+                                        searchController.text.trim(),
+                                        userRol,
+                                      );
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
                         const SizedBox(
                           height: 10,
                         ),
@@ -351,6 +373,12 @@ class _ReportPage extends State<ReportPage> {
                                                     color: Color(0xFF044086),
                                                     fontWeight:
                                                         FontWeight.bold))),
+                                        DataColumn(
+                                            label: Text('Estado del reporte',
+                                                style: TextStyle(
+                                                    color: Color(0xFF044086),
+                                                    fontWeight:
+                                                        FontWeight.bold))),
                                         DataColumn(label: Text('')),
                                       ],
                                       rows: filterList.map((report) {
@@ -364,6 +392,7 @@ class _ReportPage extends State<ReportPage> {
                                                 DateFormat('dd/MM/yyyy')
                                                     .format(report
                                                         .interview_date))),
+                                            DataCell(Text(report.status_report)),
                                             DataCell(
                                               ElevatedButton(
                                                 onPressed: () async {
@@ -392,9 +421,7 @@ class _ReportPage extends State<ReportPage> {
                                                                   status,
                                                                   level,
                                                                   grade,
-                                                                  searchController
-                                                                      .text
-                                                                      .trim()),
+                                                                  searchController.text.trim(),userRol),
                                                               if (mounted)
                                                                 {
                                                                   setState(
