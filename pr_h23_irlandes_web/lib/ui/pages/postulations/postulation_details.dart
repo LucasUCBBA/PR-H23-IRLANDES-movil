@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'package:fluttertoast/fluttertoast.dart';
+
 
 class PostulationDetails extends StatefulWidget {
   final String id;
@@ -210,6 +212,15 @@ class _PostulationDetails extends State<PostulationDetails> {
                                         postulation.interview_hour = _newInterviewDateTime!.toString().split(' ')[1];
                                         _newInterviewDateTime = null;
                                       });
+                                      Fluttertoast.showToast(
+                                        msg: 'La fecha de la entrevista se ha actualizado correctamente',
+                                        toastLength: Toast.LENGTH_SHORT,
+                                        gravity: ToastGravity.BOTTOM,
+                                        timeInSecForIosWeb: 1,
+                                        backgroundColor: Colors.green,
+                                        textColor: Colors.white,
+                                        fontSize: 16.0,
+                                      );
                                     } catch (e) {
                                       showMessageDialog(
                                         context,
