@@ -94,7 +94,7 @@ class ReportRemoteDatasourceImpl extends ReportsRemoteDatasource {
   Future<void> updateInterviewDateTime(String reportId, DateTime newDateTime) async {
     try {
       await FirebaseFirestore.instance
-          .collection('Postulations')
+          .collection('Psychology_Reports')
           .doc(reportId)
           .update({'interview_date': Timestamp.fromDate(newDateTime)});
     } catch (e) {
