@@ -13,6 +13,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:html' as html; 
+import 'package:fluttertoast/fluttertoast.dart';
 
 /*
     Pagina para ver detalles del reporte psicologico
@@ -298,11 +299,6 @@ class _ReportDetails extends State<ReportDetails> {
   return '$years años $months meses';
 }
 
-  
-
-  
-
-
   void showMessageDialog(
       BuildContext context, String iconSource, String title, String message) {
     showDialog(
@@ -444,12 +440,23 @@ class _ReportDetails extends State<ReportDetails> {
                                         report.interview_hour = _newInterviewDateTime!.toString().split(' ')[1];
                                         _newInterviewDateTime = null;
                                       });
+                                      Fluttertoast.showToast(
+                                        msg: 'La fecha de la entrevista se ha actualizado correctamente',
+                                        toastLength: Toast.LENGTH_SHORT,
+                                        gravity: ToastGravity.BOTTOM,
+                                        timeInSecForIosWeb: 1,
+                                        backgroundColor: Colors.green,
+                                        textColor: Colors.white,
+                                        fontSize: 16.0,
+                                      );
                                     } catch (e) {
+                                      print(e);
                                       showMessageDialog(
                                         context,
                                         'assets/ui/circulo-cruzado.png',
                                         'Error',
                                         'Ha ocurrido un error inesperado',
+                                        
                                       );
                                     }
                                   }
