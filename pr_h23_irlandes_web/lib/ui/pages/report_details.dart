@@ -39,10 +39,13 @@ class _ReportDetails extends State<ReportDetails> {
   String fatherPassword = '';
   String motherUserName = '';
   String motherPassword = '';
-  late String _cronologicalAge;
+  late String _cronologicalAge = report.cronological_age;
   DateTime? _newInterviewDateTime;
   TextEditingController? birthDateController;
   final reportRemoteDataSource = ReportRemoteDatasourceImpl();
+
+
+
 
   Future<void> generatePdf(BuildContext context, ReportModel report) async {
     final pdf = pw.Document();
@@ -142,9 +145,14 @@ class _ReportDetails extends State<ReportDetails> {
   TextEditingController refCellphoneController =
       TextEditingController(text: report.ref_cellphone);
   TextEditingController statusReportController =
-      TextEditingController(text: report.status_report);    
+      TextEditingController(text: report.status_report);   
   TextEditingController birthDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(report.birth_day));
-
+  TextEditingController emailController =
+      TextEditingController(text: report.email);
+  TextEditingController ciController =
+      TextEditingController(text: report.ci);
+  
+  
 
   showDialog(
     context: context,
@@ -210,6 +218,14 @@ class _ReportDetails extends State<ReportDetails> {
                 controller: refCellphoneController,
                 decoration: const InputDecoration(labelText: 'Número(s) de referencia'),
               ),
+              TextFormField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email de referencia'),
+              ),
+              TextFormField(
+                controller: ciController,
+                decoration: const InputDecoration(labelText: 'Carnet de identidad'),
+              ),
             ],
           ),
         ),
@@ -241,6 +257,11 @@ class _ReportDetails extends State<ReportDetails> {
                 observations: observationsController.text!,
                 ref_cellphone: refCellphoneController.text!,
                 status_report: statusReportController.text!,
+                //cambiar despues solo es prueba!!
+                interview_date_coord: report.interview_date_coord,
+                interview_hour_coord: report.interview_hour_coord,
+                ci: ciController.text!,
+                email: emailController.text!,
               );
 
               // Llamar a updateReport con el objeto ReportModel actualizado
@@ -248,9 +269,12 @@ class _ReportDetails extends State<ReportDetails> {
 
               setState(() {
                 report = updatedReport;
+                ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Informe modificado correctamente')));
               }); // Actualizar el estado después de editar
               Navigator.of(context).pop();
               } catch (e) {
+                print(e);
                 showMessageDialog(
                   context,
                   'assets/ui/circulo-cruzado.png',
@@ -389,40 +413,49 @@ class _ReportDetails extends State<ReportDetails> {
                             ),
                             InkWell(
                               onTap: () async {
-                                final selectedDateTime = await showDatePicker(
-                                  context: context,
-                                  initialDate: report.interview_date,
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime(2100),
-                                );
+                                try {
+                                  // Definir una fecha inicial que sea un punto de referencia en el pasado
+                                  DateTime firstAllowedDate = DateTime(2000);
 
-                                if (selectedDateTime != null) {
-                                  final selectedTime = await showTimePicker(
+                                  final selectedDate = await showDatePicker(
                                     context: context,
-                                    initialTime: TimeOfDay.fromDateTime(report.interview_date),
+                                    initialDate: report.interview_date.isBefore(firstAllowedDate)
+                                        ? DateTime.now()
+                                        : report.interview_date,
+                                    firstDate: firstAllowedDate,
+                                    lastDate: DateTime(2100),
                                   );
 
-                                  if (selectedTime != null) {
-                                    setState(() {
-                                      _newInterviewDateTime = DateTime(
-                                        selectedDateTime.year,
-                                        selectedDateTime.month,
-                                        selectedDateTime.day,
-                                        selectedTime.hour,
-                                        selectedTime.minute,
-                                      );
-                                    });
+                                  if (selectedDate != null) {
+                                    final selectedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.fromDateTime(report.interview_date),
+                                    );
+
+                                    if (selectedTime != null) {
+                                      setState(() {
+                                        _newInterviewDateTime = DateTime(
+                                          selectedDate.year,
+                                          selectedDate.month,
+                                          selectedDate.day,
+                                          selectedTime.hour,
+                                          selectedTime.minute,
+                                        );
+                                      });
+                                    }
                                   }
+                                } catch (e) {
+                                  print('Error selecting date/time: $e');
+                                  // Optionally, show a dialog to inform the user about the error
                                 }
                               },
                               child: _newInterviewDateTime != null
                                 ? Text('${_newInterviewDateTime.toString()}')
-                                : const Text('Seleccionar nueva fecha y hora si desea editar'),
+                                : const Text('Seleccionar nueva fecha y hora'),
                             ),
                             Text(
-                              ('${DateFormat('dd/MM/yyyy').format(report.interview_date)} ${report.interview_hour}'),
-                              style: const TextStyle(
-                                  color: Colors.black, fontSize: 18),
+                              '${DateFormat('dd/MM/yyyy').format(report.interview_date)} ${report.interview_hour}',
+                              style: const TextStyle(color: Colors.black, fontSize: 18),
                             ),
                             ElevatedButton(
                               onPressed: _newInterviewDateTime != null
@@ -432,12 +465,13 @@ class _ReportDetails extends State<ReportDetails> {
                                       await reportRemoteDatasourceImpl.updateInterviewDateTime(
                                         widget.id,
                                         _newInterviewDateTime!,
+                                        TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context),
                                       );
 
                                       // Actualizar el estado del widget con la nueva fecha y hora
                                       setState(() {
                                         report.interview_date = _newInterviewDateTime!;
-                                        report.interview_hour = _newInterviewDateTime!.toString().split(' ')[1];
+                                        report.interview_hour = TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context);
                                         _newInterviewDateTime = null;
                                       });
                                       Fluttertoast.showToast(
@@ -450,14 +484,8 @@ class _ReportDetails extends State<ReportDetails> {
                                         fontSize: 16.0,
                                       );
                                     } catch (e) {
-                                      print(e);
-                                      showMessageDialog(
-                                        context,
-                                        'assets/ui/circulo-cruzado.png',
-                                        'Error',
-                                        'Ha ocurrido un error inesperado',
-                                        
-                                      );
+                                      print('Error updating interview date/time: $e');
+                                      // Optionally, show a dialog to inform the user about the error
                                     }
                                   }
                                 : null,
@@ -522,7 +550,22 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  report.fullname,
+                                  '${report.fullname} ',
+                                  textAlign: TextAlign.left,
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 18),
+                                ),
+                                const Text(
+                                  'Carnet de Identidad: ',
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                      color: Color(0xFF044086), fontSize: 18),
+                                ),
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                Text(
+                                  '${report.ci} ',
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 18),
@@ -540,7 +583,7 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  report.cronological_age,
+                                  '${report.cronological_age} ',
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 18),
@@ -781,6 +824,31 @@ class _ReportDetails extends State<ReportDetails> {
                                         ),
                                       ],
                                     ),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(
+                                          width: 35,
+                                        ),
+                                        const Text(
+                                          'Email de referencia: ',
+                                          textAlign: TextAlign.left,
+                                          style: TextStyle(
+                                              color: Color(0xFF044086),
+                                              fontSize: 18),
+                                        ),
+                                        const SizedBox(
+                                          width: 10,
+                                        ),
+                                        Text(
+                                          report.email,
+                                          textAlign: TextAlign.left,
+                                          style: const TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 18),
+                                        ),
+                                      ],
+                                    ),
                                     const SizedBox(height: 10), // Espacio entre las filas
                                     Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -857,10 +925,20 @@ class _ReportDetails extends State<ReportDetails> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 10),
                                   child: ElevatedButton(
-                                    onPressed: () {
-                                      _showEditDialog(context);
-                                    },
+                                    onPressed: report.status_report != 'Administración' ? () => _showEditDialog(context) : null,
+                                    // Si el status del informe es "Administración", onPressed es null y el botón se deshabilita
                                     child: const Text('Editar'),
+                                    // El botón se deshabilita si el status del informe es "Administración"
+                                    style: ButtonStyle(
+                                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                                        (Set<MaterialState> states) {
+                                          if (states.contains(MaterialState.disabled)) {
+                                            return Colors.grey; // Color del botón cuando está deshabilitado
+                                          }
+                                          return Colors.blue; // Color del botón cuando está habilitado
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 Padding(
