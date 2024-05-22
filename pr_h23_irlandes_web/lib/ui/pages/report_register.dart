@@ -46,11 +46,17 @@ class _RegisterReport extends State<RegisterReport> {
   late TextEditingController _observationsController;
   late TextEditingController _refCellphoneController;
   late TextEditingController _interviewHourController;
+  late TextEditingController _interviewHourCoordController;
+  late TextEditingController _ciController;
   late DateTime _selectedBirthDate = DateTime.now();
   late DateTime _selectedInterviewDate = DateTime.now();
   late String _cronologicalAge = '';
   late String _selectedInterviewHour = '';
   late String _defaultStatusReport;
+  late TextEditingController _emailController;
+  late DateTime _selectedCoordInterviewDate = DateTime.now();
+  late String _selectedCoordInterviewHour = '';
+  late String _ci = '';
   String? selectedLevel;
   String? selectedGrade;
   List<String> gradeOptions = [];
@@ -74,6 +80,9 @@ class _RegisterReport extends State<RegisterReport> {
     _interviewHourController = TextEditingController();
     _selectedInterviewHour = '';
     _defaultStatusReport = 'Psicologia';
+    _emailController = TextEditingController();
+    _interviewHourCoordController = TextEditingController();
+    _ciController = TextEditingController();
   }
 
   @override
@@ -91,6 +100,10 @@ class _RegisterReport extends State<RegisterReport> {
     _observationsController.dispose();
     _refCellphoneController.dispose();
     _interviewHourController.dispose();
+    _emailController.dispose();
+    _interviewHourCoordController.dispose();
+    _ciController.dispose();
+    super.dispose();
 
     super.dispose();
   }
@@ -109,25 +122,31 @@ class _RegisterReport extends State<RegisterReport> {
   if (_formKey.currentState!.validate()) {
     // Construir el modelo de informe
     DateTime interviewDateTimestamp = _selectedInterviewDate;
+    DateTime interviewDateCoordTimestamp = _selectedCoordInterviewDate;
 
-    ReportModel report = ReportModel(
-      fullname: _fullnameController.text,
-      interview_date: interviewDateTimestamp,
-      interview_hour: _selectedInterviewHour,
-      birth_day: _selectedBirthDate,
-      cronological_age: _cronologicalAge,
-      familiar_details: _familiarDetailsController.text,
-      mother_info: _motherInfoController.text,
-      father_info: _fatherInfoController.text,
-      brothers_info: _brothersInfoController.text,
-      emotion_cog_info: _emotionCogInfoController.text,
-      final_tip: _finalTipController.text,
-      observations: _observationsController.text,
-      ref_cellphone: _refCellphoneController.text,
-      grade: selectedGrade ?? '',
-      level: selectedLevel ?? '',
-      status_report: _defaultStatusReport,
-    );
+
+      ReportModel report = ReportModel(
+        fullname: _fullnameController.text,
+        interview_date: interviewDateTimestamp,
+        interview_hour: _selectedInterviewHour,
+        interview_date_coord: interviewDateCoordTimestamp,
+        interview_hour_coord: _selectedCoordInterviewHour,
+        ci: _ciController.text,
+        email: _emailController.text,
+        birth_day: _selectedBirthDate,
+        cronological_age: _cronologicalAge,
+        familiar_details: _familiarDetailsController.text,
+        mother_info: _motherInfoController.text,
+        father_info: _fatherInfoController.text,
+        brothers_info: _brothersInfoController.text,
+        emotion_cog_info: _emotionCogInfoController.text,
+        final_tip: _finalTipController.text,
+        observations: _observationsController.text,
+        ref_cellphone: _refCellphoneController.text,
+        grade: selectedGrade ?? '',
+        level: selectedLevel ?? '',
+        status_report: _defaultStatusReport,
+      );
 
     // Llamar al método para crear el informe en la base de datos
     String reportId = await reportRemoteDatasourceImpl.createReport(report);
@@ -141,6 +160,7 @@ class _RegisterReport extends State<RegisterReport> {
       setState(() {
         _selectedBirthDate = DateTime.now();
         _selectedInterviewDate = DateTime.now();
+        _selectedCoordInterviewDate = DateTime.now();
         _cronologicalAge = '';
         selectedLevel = null;
         selectedGrade = null;
@@ -218,39 +238,124 @@ class _RegisterReport extends State<RegisterReport> {
                           }
                         },
                       ),
-                      GestureDetector(
-                        onTap: () async {
-                          final selectedDateTime = await showDatePicker(
+                      const SizedBox(height: 20.0),
+                    const Text(
+                      'Entrevista de Psicología',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        final selectedDateTime = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedInterviewDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+
+                        if (selectedDateTime != null) {
+                          final selectedTime = await showTimePicker(
                             context: context,
-                            initialDate: _selectedInterviewDate ?? DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
+                            initialTime: TimeOfDay.fromDateTime(
+                                _selectedInterviewDate ?? DateTime.now()),
                           );
 
-                          if (selectedDateTime != null) {
-                            final selectedTime = await showTimePicker(
-                              context: context,
-                              initialTime: TimeOfDay.fromDateTime(_selectedInterviewDate ?? DateTime.now()),
-                            );
-
-                            if (selectedTime != null) {
-                              setState(() {
-                                _selectedInterviewDate = DateTime(
-                                  selectedDateTime.year,
-                                  selectedDateTime.month,
-                                  selectedDateTime.day,
-                                  selectedTime.hour,
-                                  selectedTime.minute,
-                                );
-                                _selectedInterviewHour = '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}';
-                              });
-                            }
+                          if (selectedTime != null) {
+                            setState(() {
+                              _selectedInterviewDate = DateTime(
+                                selectedDateTime.year,
+                                selectedDateTime.month,
+                                selectedDateTime.day,
+                                selectedTime.hour,
+                                selectedTime.minute,
+                              );
+                              _selectedInterviewHour =
+                                  '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}';
+                            });
                           }
-                        },
-                        child: _selectedInterviewDate != null
-                          ? Text('${DateFormat('dd/MM/yyyy HH:mm').format(_selectedInterviewDate!)}')
-                          : const Text('Seleccionar fecha y hora de la entrevista'),
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.calendar_today),
+                            const SizedBox(width: 8.0),
+                            Text(
+                              _selectedInterviewDate != null
+                                  ? DateFormat('dd/MM/yyyy HH:mm').format(_selectedInterviewDate!)
+                                  : 'Seleccionar fecha y hora',
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    const Text(
+                      'Entrevista de Coordinación',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        final selectedDateTime = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedCoordInterviewDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+
+                        if (selectedDateTime != null) {
+                          final selectedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(
+                                _selectedCoordInterviewDate ?? DateTime.now()),
+                          );
+
+                          if (selectedTime != null) {
+                            setState(() {
+                              _selectedCoordInterviewDate = DateTime(
+                                selectedDateTime.year,
+                                selectedDateTime.month,
+                                selectedDateTime.day,
+                                selectedTime.hour,
+                                selectedTime.minute,
+                              );
+                              _selectedCoordInterviewHour =
+                                  '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}';
+                            });
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.calendar_today),
+                            const SizedBox(width: 8.0),
+                            Text(
+                              _selectedCoordInterviewDate != null
+                                  ? DateFormat('dd/MM/yyyy HH:mm').format(_selectedCoordInterviewDate!)
+                                  : 'Seleccionar fecha y hora',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                       SizedBox(height: 10.0),
                       Text('Edad cronológica: $_cronologicalAge'),
                       SizedBox(height: 10.0),
@@ -303,6 +408,24 @@ class _RegisterReport extends State<RegisterReport> {
                         controller: _fullnameController,
                         decoration: InputDecoration(
                           labelText: 'Nombre completo',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: null,
+                      ),
+                      SizedBox(height: 10.0),
+                      TextField(
+                        controller: _ciController,
+                        decoration: InputDecoration(
+                          labelText: 'Carnet de Identidad',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: null,
+                      ),
+                      SizedBox(height: 10.0),
+                      TextField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Correo Electrónico',
                           border: OutlineInputBorder(),
                         ),
                         maxLines: null,
