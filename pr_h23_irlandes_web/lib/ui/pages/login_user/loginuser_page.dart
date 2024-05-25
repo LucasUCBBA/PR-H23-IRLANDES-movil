@@ -157,14 +157,23 @@ class _LoginUserPageState extends State<LoginUserPage> {
                                           await prefs.setString('personId', persona.id);
                                           Navigator.pushNamed(
                                               context, '/notice_main');
-                                        } else if (persona.rol == 'psicologia_uno') {
+                                        } else if (persona.rol == 'psicologia_uno' || persona.rol == 'psicologia_dos') {
                                           // Usuario no tiene permisos de administrador
                                           SharedPreferences prefs =
                                           await SharedPreferences.getInstance();
                                           await prefs.setString('personId', persona.id);
                                           Navigator.pushNamed(
                                               context, '/psicologia_page');                                        
-                                        } else {
+                                        }
+                                        else if (persona.rol == 'coordinacion_uno' || persona.rol == 'coordinacion_dos') {
+                                          // Usuario no tiene permisos de administrador
+                                          SharedPreferences prefs =
+                                          await SharedPreferences.getInstance();
+                                          await prefs.setString('personId', persona.id);
+                                          Navigator.pushNamed(
+                                              context, '/Coordination_Page'); 
+                                        }
+                                         else {
                                           GlobalMethods.showToast(
                                               "Usuario no tiene permiso de acceso");
                                         }

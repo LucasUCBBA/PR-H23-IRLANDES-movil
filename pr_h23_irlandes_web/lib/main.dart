@@ -19,6 +19,9 @@ import 'package:pr_h23_irlandes_web/ui/pages/menu_options_psico.dart';
 import 'package:pr_h23_irlandes_web/ui/pages/report_page.dart';
 import 'package:pr_h23_irlandes_web/ui/pages/report_register.dart';
 import 'package:pr_h23_irlandes_web/ui/pages/report_details.dart';
+import 'package:pr_h23_irlandes_web/ui/pages/coordination/coordination_page.dart';
+import 'package:pr_h23_irlandes_web/ui/pages/coordination/coordination_register.dart';
+import 'package:pr_h23_irlandes_web/ui/pages/coordination/coordination_details.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -30,11 +33,10 @@ import 'package:pr_h23_irlandes_web/ui/pages/notice/notice_management_page.dart'
 import 'package:pr_h23_irlandes_web/ui/pages/postulations/postulation_details.dart';
 import 'package:pr_h23_irlandes_web/ui/pages/postulations/register_postulation.dart';
 import 'firebase_options.dart';
-
+import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   // Deshabilitar la manipulación de la URL
   SystemChannels.navigation.setMethodCallHandler((MethodCall methodCall) async {
     if (methodCall.method == 'url') {
@@ -116,7 +118,17 @@ class MyApp extends StatelessWidget {
           );
         },
         '/register_report': (context) => const RegisterReport(),
-        
+        '/Coordination_Page': (context) => const CoordinacionPage(),
+        '/Coordination_Register': (context) => const RegisterCoordinacionReport(),
+        '/report_coordinacion_details': (context) {
+          final Map<String, dynamic> arguments = ModalRoute.of(context)!
+              .settings
+              .arguments as Map<String, dynamic>;
+          final String reportCoordID = arguments['id'];
+          return ReportCoordDetails(
+            id: reportCoordID,
+          );
+        },
       },
     );
   }

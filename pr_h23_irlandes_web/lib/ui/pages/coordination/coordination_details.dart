@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:pr_h23_irlandes_web/data/model/notification_model.dart';
 import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
 import 'package:pr_h23_irlandes_web/data/model/report_model.dart';
+import 'package:pr_h23_irlandes_web/data/model/Coordinacion_Reports_model.dart';
 import 'package:pr_h23_irlandes_web/data/remote/notifications_remote_datasource.dart';
 import 'package:pr_h23_irlandes_web/data/remote/reports_remote_datasource.dart';
+import 'package:pr_h23_irlandes_web/data/remote/Coordinacion_remote_datasource.dart';
 import 'package:pr_h23_irlandes_web/data/remote/user_remote_datasource.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -19,35 +21,34 @@ import 'package:fluttertoast/fluttertoast.dart';
     Pagina para ver detalles del reporte psicologico
 */
 
-class ReportDetails extends StatefulWidget {
+class ReportCoordDetails extends StatefulWidget {
   final String id;
-  const ReportDetails({super.key, required this.id});
+  const ReportCoordDetails({super.key, required this.id});
 
   @override
-  State<ReportDetails> createState() => _ReportDetails();
+  State<ReportCoordDetails> createState() => _ReportCoordDetails();
 }
 
-class _ReportDetails extends State<ReportDetails> {
-  ReportRemoteDatasourceImpl reportRemoteDatasourceImpl =
-      ReportRemoteDatasourceImpl();
+class _ReportCoordDetails extends State<ReportCoordDetails> {
+  CordinacionRemoteDatasourceImpl reportCoordRemoteDatasourceImpl =
+      CordinacionRemoteDatasourceImpl();
   PersonaDataSource _personaDataSource = PersonaDataSourceImpl();
   final NotificationRemoteDataSource notificationRemoteDataSource =
       NotificationRemoteDataSourceImpl();
-  late ReportModel report;
+  late CoordinacionModel reportCoord;
   bool isLoading = true;
   String fatherUserName = '';
   String fatherPassword = '';
   String motherUserName = '';
   String motherPassword = '';
-  late String _cronologicalAge = report.cronological_age;
   DateTime? _newInterviewDateTime;
   TextEditingController? birthDateController;
-  final reportRemoteDataSource = ReportRemoteDatasourceImpl();
+  final reportCoordRemoteDataSource = CordinacionRemoteDatasourceImpl();
 
 
 
 
-  Future<void> generatePdf(BuildContext context, ReportModel report) async {
+  Future<void> generatePdf(BuildContext context, CoordinacionModel reportCoord) async {
     final pdf = pw.Document();
 
   pw.Widget _buildDataRow(String data) {
@@ -84,22 +85,25 @@ class _ReportDetails extends State<ReportDetails> {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            pw.Text('Detalles de reporte - Psicología', style: pw.TextStyle(fontSize: 20)),
+            pw.Text('Detalles de reporte - Coordinación', style: pw.TextStyle(fontSize: 20)),
             pw.SizedBox(height: 10),
-            pw.Text('Fecha de entrevista: ${DateFormat('dd/MM/yyyy').format(report.interview_date)} ${report.interview_hour}', style: pw.TextStyle(fontSize: 14)),
-            _buildDataRow('Nombre completo: ${report.fullname}'),
-            _buildDataRow('Edad cronologica: ${report.cronological_age}'),
-            _buildDataRow('Fecha de nacimiento: ${report.birth_day}'),
-            _buildDataRow('Nivel: ${report.level}'),
-            _buildDataRow('Grado: ${report.grade}'),
-            _buildDataRow('Aspecto socioemocional y cognitivo: ${report.emotion_cog_info}'),
-            _buildDataRow('Aspecto familiar: ${report.familiar_details}'),
-            _buildDataRow('Datos de la madre: ${report.mother_info}'),
-            _buildDataRow('Datos del padre: ${report.father_info}'),
-            _buildDataRow('Datos de los hermanos: ${report.brothers_info}'),
-            _buildDataRow('Sugerencia: ${report.final_tip}'),
-            _buildDataRow('Observaciones: ${report.observations}'),
-            _buildDataRow('Datos de contacto: ${report.ref_cellphone}'),
+            pw.Text('Fecha de entrevista - Coordinación: ${DateFormat('dd/MM/yyyy').format(reportCoord.interview_date_cord)} ${reportCoord.interview_hour_cord}', style: pw.TextStyle(fontSize: 14)),
+            pw.Text('Fecha de entrevista - Psicología: ${DateFormat('dd/MM/yyyy').format(reportCoord.interview_date_psicologia)} ${reportCoord.interview_hour_psicologia}', style: pw.TextStyle(fontSize: 14)),
+            _buildDataRow('Nombre completo: ${reportCoord.studentFullName}'),
+            _buildDataRow('Fecha de nacimiento: ${reportCoord.birthDate}'),
+            _buildDataRow('Carnet de identidad: ${reportCoord.ci}'),
+            _buildDataRow('Colegio anterior: ${reportCoord.previousSchool}'),
+            _buildDataRow('Correo electrónico de referencia: ${reportCoord.email}'),
+            _buildDataRow('Nivel: ${reportCoord.level}'),
+            _buildDataRow('Grado: ${reportCoord.course}'),
+            _buildDataRow('Datos de la madre: ${reportCoord.motherFullName}'),
+            _buildDataRow('Teléfono de la madre: ${reportCoord.motherPhoneNumber}'),
+            _buildDataRow('Datos del padre: ${reportCoord.fatherFullName}'),
+            _buildDataRow('Teléfono del padre: ${reportCoord.fatherPhoneNumber}'),
+            _buildDataRow('Datos de los hermanos: ${reportCoord.siblingDetails}'),
+            _buildDataRow('Teléfono familiar: ${reportCoord.familyPhoneNumber}'),
+            _buildDataRow('Observación de coordinación: ${reportCoord.obs_Cord}'),
+            _buildDataRow('Observación de psicología: ${reportCoord.obs_Psychology}'),
           ],
         ),
       );
@@ -114,7 +118,7 @@ class _ReportDetails extends State<ReportDetails> {
     // Crear un URL del blob y abrir una ventana para descargar el archivo
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement(href: url)
-      ..setAttribute("download", "report_details_" + report.fullname + ".pdf")
+      ..setAttribute("download", "Informe Coordinacion - " + reportCoord.studentFullName + ".pdf")
       ..click();
 
     // Limpiar la URL creada
@@ -128,29 +132,20 @@ class _ReportDetails extends State<ReportDetails> {
 
 
   void _showEditDialog(BuildContext context) {
-  TextEditingController emotionCogInfoController =
-      TextEditingController(text: report.emotion_cog_info);
-  TextEditingController familiarDetailsController =
-      TextEditingController(text: report.familiar_details);
-  TextEditingController motherInfoController =
-      TextEditingController(text: report.mother_info);
-  TextEditingController fatherInfoController =
-      TextEditingController(text: report.father_info);
-  TextEditingController brothersInfoController =
-      TextEditingController(text: report.brothers_info);
-  TextEditingController finalTipController =
-      TextEditingController(text: report.final_tip);
-  TextEditingController observationsController =
-      TextEditingController(text: report.observations);
-  TextEditingController refCellphoneController =
-      TextEditingController(text: report.ref_cellphone);
-  TextEditingController statusReportController =
-      TextEditingController(text: report.status_report);   
-  TextEditingController birthDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(report.birth_day));
-  TextEditingController emailController =
-      TextEditingController(text: report.email);
-  TextEditingController ciController =
-      TextEditingController(text: report.ci);
+  TextEditingController studentFullNameController = TextEditingController(text: reportCoord.studentFullName);
+  TextEditingController ciController = TextEditingController(text: reportCoord.ci);
+  TextEditingController previousSchoolController = TextEditingController(text: reportCoord.previousSchool);
+  TextEditingController emailController = TextEditingController(text: reportCoord.email);
+  TextEditingController motherNameController = TextEditingController(text: reportCoord.motherFullName);
+  TextEditingController motherPhoneController = TextEditingController(text: reportCoord.motherPhoneNumber);
+  TextEditingController fatherNameController = TextEditingController(text: reportCoord.fatherFullName);
+  TextEditingController fatherPhoneController = TextEditingController(text: reportCoord.fatherPhoneNumber);
+  TextEditingController siblingInfoController = TextEditingController(text: reportCoord.siblingDetails);   
+  TextEditingController familyPhoneController = TextEditingController(text: reportCoord.familyPhoneNumber);   
+  TextEditingController hasSiblingsController = TextEditingController(text: reportCoord.hasSiblings);
+  TextEditingController obsCoordController = TextEditingController(text: reportCoord.obs_Cord);  
+  TextEditingController birthDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(reportCoord.birthDate));
+  
   
   
 
@@ -158,15 +153,15 @@ class _ReportDetails extends State<ReportDetails> {
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: const Text('Editar reporte'),
+        title: const Text('Editar reporte - Coordinación'),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                controller: emotionCogInfoController,
-                decoration: const InputDecoration(labelText: 'Aspecto socioemocional y cognitivo'),
+                controller: studentFullNameController,
+                decoration: const InputDecoration(labelText: 'Nombre completo del estudiante'),
               ),
               TextFormField(
                 controller: birthDateController,
@@ -174,15 +169,14 @@ class _ReportDetails extends State<ReportDetails> {
                 onTap: () async {
                   final selectedDate = await showDatePicker(
                     context: context,
-                    initialDate: report.birth_day,
+                    initialDate: reportCoord.birthDate,
                     firstDate: DateTime(1900),
                     lastDate: DateTime.now(),
                   );
                   if (selectedDate != null) {
                     setState(() {
-                      report.birth_day = selectedDate;
+                      reportCoord.birthDate = selectedDate;
                       birthDateController.text = DateFormat('dd/MM/yyyy').format(selectedDate);
-                      _cronologicalAge = _calculateChronologicalAge(selectedDate);
                     });
                   }
                 },
@@ -191,40 +185,48 @@ class _ReportDetails extends State<ReportDetails> {
                 ),
               ),
               TextFormField(
-                controller: familiarDetailsController,
-                decoration: const InputDecoration(labelText: 'Aspecto familiar'),
+                controller: ciController,
+                decoration: const InputDecoration(labelText: 'Carnet de identidad'),
               ),
               TextFormField(
-                controller: motherInfoController,
-                decoration: const InputDecoration(labelText: 'Datos de la madre'),
-              ),
-              TextFormField(
-                controller: fatherInfoController,
-                decoration: const InputDecoration(labelText: 'Datos del padre'),
-              ),
-              TextFormField(
-                controller: brothersInfoController,
-                decoration: const InputDecoration(labelText: 'Datos de los hermanos'),
-              ),
-              TextFormField(
-                controller: finalTipController,
-                decoration: const InputDecoration(labelText: 'Sugerencia'),
-              ),
-              TextFormField(
-                controller: observationsController,
-                decoration: const InputDecoration(labelText: 'Observaciones'),
-              ),
-              TextFormField(
-                controller: refCellphoneController,
-                decoration: const InputDecoration(labelText: 'Número(s) de referencia'),
+                controller: previousSchoolController,
+                decoration: const InputDecoration(labelText: 'Colegio anterior'),
               ),
               TextFormField(
                 controller: emailController,
                 decoration: const InputDecoration(labelText: 'Email de referencia'),
               ),
               TextFormField(
-                controller: ciController,
-                decoration: const InputDecoration(labelText: 'Carnet de identidad'),
+                controller: motherNameController,
+                decoration: const InputDecoration(labelText: 'Nombre completo de la madre'),
+              ),
+              TextFormField(
+                controller: motherPhoneController,
+                decoration: const InputDecoration(labelText: 'Nro. teléfono de la madre'),
+              ),
+              TextFormField(
+                controller: fatherNameController,
+                decoration: const InputDecoration(labelText: 'Nombre completo del padre'),
+              ),
+              TextFormField(
+                controller: fatherPhoneController,
+                decoration: const InputDecoration(labelText: 'Nro. teléfono del padre'),
+              ),
+              TextFormField(
+                controller: siblingInfoController,
+                decoration: const InputDecoration(labelText: 'Información de los hermanos'),
+              ),
+              TextFormField(
+                controller: familyPhoneController,
+                decoration: const InputDecoration(labelText: 'Nro. teléfono familiar'),
+              ),
+              TextFormField(
+                controller: hasSiblingsController,
+                decoration: const InputDecoration(labelText: '¿Tiene hermanos?'),
+              ),
+              TextFormField(
+                controller: obsCoordController,
+                decoration: const InputDecoration(labelText: 'Observación de coordinación'),
               ),
             ],
           ),
@@ -239,36 +241,39 @@ class _ReportDetails extends State<ReportDetails> {
           ElevatedButton(
             onPressed: () async {
               try {
-                ReportModel updatedReport = ReportModel(
-                id: report.id,
-                fullname: report.fullname,
-                interview_date: report.interview_date,
-                interview_hour: report.interview_hour,
-                birth_day: report.birth_day,
-                cronological_age: _cronologicalAge,
-                grade: report.grade,
-                level: report.level,
-                familiar_details: familiarDetailsController.text!,
-                mother_info: motherInfoController.text!,
-                father_info: fatherInfoController.text!,
-                brothers_info: brothersInfoController.text!,
-                emotion_cog_info: emotionCogInfoController.text!,
-                final_tip: finalTipController.text!,
-                observations: observationsController.text!,
-                ref_cellphone: refCellphoneController.text!,
-                status_report: statusReportController.text!,
-                //cambiar despues solo es prueba!!
-                interview_date_coord: report.interview_date_coord,
-                interview_hour_coord: report.interview_hour_coord,
-                ci: ciController.text!,
+                CoordinacionModel updatedReport = CoordinacionModel(
+                id: reportCoord.id,
+                studentFullName: studentFullNameController.text,
+                interview_date_cord: reportCoord.interview_date_cord,
+                interview_hour_cord: reportCoord.interview_hour_cord,
+                birthDate: reportCoord.birthDate,
+                course: reportCoord.course,
+                level: reportCoord.level,
                 email: emailController.text!,
+                previousSchool: previousSchoolController.text!,
+                hasSiblings: hasSiblingsController.text!,
+                siblingDetails: siblingInfoController.text!,
+                fatherFullName: fatherNameController.text!,
+                fatherPhoneNumber: fatherPhoneController.text!,
+                motherFullName: motherNameController.text!,
+                motherPhoneNumber: motherPhoneController.text!,
+                familyPhoneNumber: familyPhoneController.text!,
+                ci: ciController.text!,
+                interview_date_psicologia: reportCoord.interview_date_psicologia,
+                interview_hour_psicologia: reportCoord.interview_hour_psicologia,
+                obs_Psychology: reportCoord.obs_Psychology,
+                obs_Cord: obsCoordController.text!,
+                interview_date_admin: reportCoord.interview_date_admin,
+                interview_hour_admin: reportCoord.interview_hour_admin,
+                obs_Admin: reportCoord.obs_Admin,
+                registrationDate: reportCoord.registrationDate,
               );
 
               // Llamar a updateReport con el objeto ReportModel actualizado
-              await reportRemoteDatasourceImpl.updateReport(updatedReport);
+              await reportCoordRemoteDatasourceImpl.updateReportCoord(updatedReport);
 
               setState(() {
-                report = updatedReport;
+                reportCoord = updatedReport;
                 ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Informe modificado correctamente')));
               }); // Actualizar el estado después de editar
@@ -293,16 +298,16 @@ class _ReportDetails extends State<ReportDetails> {
 
   @override
   void initState() {
-    reportRemoteDatasourceImpl
-        .getReportByID(widget.id)
+    reportCoordRemoteDatasourceImpl
+        .getReportCordByID(widget.id)
         .then((value) => {
               isLoading = true,
-              report = value,
+              reportCoord = value,
               if (mounted)
                 {
                   setState(() {
                     isLoading = false;
-                    birthDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(report.birth_day));
+                    birthDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(reportCoord.birthDate));
                   })
                 }
             });
@@ -375,7 +380,7 @@ class _ReportDetails extends State<ReportDetails> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Detalles de reporte - Psicología',
+        title: Text('Detalles de reporte - Coordinación',
             style: GoogleFonts.barlow(
                 textStyle: const TextStyle(
                     color: Color(0xFF3D5269),
@@ -419,9 +424,9 @@ class _ReportDetails extends State<ReportDetails> {
 
                                   final selectedDate = await showDatePicker(
                                     context: context,
-                                    initialDate: report.interview_date.isBefore(firstAllowedDate)
+                                    initialDate: reportCoord.interview_date_cord.isBefore(firstAllowedDate)
                                         ? DateTime.now()
-                                        : report.interview_date,
+                                        : reportCoord.interview_date_cord,
                                     firstDate: firstAllowedDate,
                                     lastDate: DateTime(2100),
                                   );
@@ -429,7 +434,7 @@ class _ReportDetails extends State<ReportDetails> {
                                   if (selectedDate != null) {
                                     final selectedTime = await showTimePicker(
                                       context: context,
-                                      initialTime: TimeOfDay.fromDateTime(report.interview_date),
+                                      initialTime: TimeOfDay.fromDateTime(reportCoord.interview_date_cord),
                                     );
 
                                     if (selectedTime != null) {
@@ -454,7 +459,7 @@ class _ReportDetails extends State<ReportDetails> {
                                 : const Text('Seleccionar nueva fecha y hora'),
                             ),
                             Text(
-                              '${DateFormat('dd/MM/yyyy').format(report.interview_date)} ${report.interview_hour}',
+                              '${DateFormat('dd/MM/yyyy').format(reportCoord.interview_date_cord)} ${reportCoord.interview_hour_cord}',
                               style: const TextStyle(color: Colors.black, fontSize: 18),
                             ),
                             ElevatedButton(
@@ -462,7 +467,7 @@ class _ReportDetails extends State<ReportDetails> {
                                 ? () async {
                                     try {
                                       // Actualizar la fecha y hora de la entrevista en Firebase
-                                      await reportRemoteDatasourceImpl.updateInterviewDateTime(
+                                      await reportCoordRemoteDatasourceImpl.updateInterviewCordDateTime(
                                         widget.id,
                                         _newInterviewDateTime!,
                                         TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context),
@@ -470,8 +475,8 @@ class _ReportDetails extends State<ReportDetails> {
 
                                       // Actualizar el estado del widget con la nueva fecha y hora
                                       setState(() {
-                                        report.interview_date = _newInterviewDateTime!;
-                                        report.interview_hour = TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context);
+                                        reportCoord.interview_date_cord = _newInterviewDateTime!;
+                                        reportCoord.interview_hour_cord = TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context);
                                         _newInterviewDateTime = null;
                                       });
                                       Fluttertoast.showToast(
@@ -508,7 +513,7 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  report.level,
+                                  reportCoord.level,
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 18),
@@ -526,7 +531,7 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  report.grade,
+                                  reportCoord.course,
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 18),
@@ -550,7 +555,7 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  '${report.fullname} ',
+                                  '${reportCoord.studentFullName} ',
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 18),
@@ -565,28 +570,13 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  '${report.ci} ',
+                                  '${reportCoord.ci} ',
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                       color: Colors.black, fontSize: 18),
                                 ),
                                 const SizedBox(
                                   width: 35,
-                                ),
-                                const Text(
-                                  'Edad Cronológica: ',
-                                  textAlign: TextAlign.left,
-                                  style: TextStyle(
-                                      color: Color(0xFF044086), fontSize: 18),
-                                ),
-                                const SizedBox(
-                                  width: 10,
-                                ),
-                                Text(
-                                  '${report.cronological_age} ',
-                                  textAlign: TextAlign.left,
-                                  style: const TextStyle(
-                                      color: Colors.black, fontSize: 18),
                                 ),
                                 const Text(
                                   'Fecha nacimiento: ',
@@ -598,7 +588,7 @@ class _ReportDetails extends State<ReportDetails> {
                                   width: 10,
                                 ),
                                 Text(
-                                  DateFormat('dd/MM/yyyy').format(report.birth_day),
+                                  DateFormat('dd/MM/yyyy').format(reportCoord.birthDate),
                                     textAlign: TextAlign.left,
                                     style: const TextStyle(
                                     color: Colors.black,
@@ -640,7 +630,7 @@ class _ReportDetails extends State<ReportDetails> {
                                             width: 35,
                                           ),
                                           const Text(
-                                            'Aspecto socioemocional y cognitivo: ',
+                                            'Observación psicología: ',
                                             textAlign: TextAlign.left,
                                             style: TextStyle(
                                                 color: Color(0xFF044086),
@@ -651,7 +641,7 @@ class _ReportDetails extends State<ReportDetails> {
                                           ),
                                           Flexible(
                                             child: Text(
-                                              report.emotion_cog_info,
+                                              reportCoord.obs_Psychology,
                                               textAlign: TextAlign.left,
                                               style: const TextStyle(color: Colors.black, fontSize: 18),
                                             ),
@@ -666,14 +656,14 @@ class _ReportDetails extends State<ReportDetails> {
                                         children: [
                                           const SizedBox(width: 35),
                                           const Text(
-                                            'Aspecto familiar: ',
+                                            'Observación coordinación: ',
                                             textAlign: TextAlign.left,
                                             style: TextStyle(color: Color(0xFF044086), fontSize: 18),
                                           ),
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
-                                              report.familiar_details,
+                                              reportCoord.obs_Cord,
                                               textAlign: TextAlign.left,
                                               style: const TextStyle(color: Colors.black, fontSize: 18),
                                             ),
@@ -685,14 +675,66 @@ class _ReportDetails extends State<ReportDetails> {
                                         children: [
                                           const SizedBox(width: 35),
                                           const Text(
-                                            'Datos de la madre: ',
+                                            'Observación administración: ',
                                             textAlign: TextAlign.left,
                                             style: TextStyle(color: Color(0xFF044086), fontSize: 18),
                                           ),
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
-                                              report.mother_info,
+                                              reportCoord.obs_Admin,
+                                              textAlign: TextAlign.left,
+                                              style: const TextStyle(color: Colors.black, fontSize: 18),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10.0),
+                              
+                              ),
+                              child: Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(width: 35),
+                                          const Text(
+                                            'Nombre del padre: ',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(color: Color(0xFF044086), fontSize: 18),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              reportCoord.fatherFullName,
+                                              textAlign: TextAlign.left,
+                                              style: const TextStyle(color: Colors.black, fontSize: 18),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(width: 35),
+                                          const Text(
+                                            'Nombre de la madre: ',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(color: Color(0xFF044086), fontSize: 18),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              reportCoord.motherFullName,
                                               textAlign: TextAlign.left,
                                               style: const TextStyle(color: Colors.black, fontSize: 18),
                                             ),
@@ -704,14 +746,14 @@ class _ReportDetails extends State<ReportDetails> {
                                         children: [
                                           const SizedBox(width: 35),
                                           const Text(
-                                            'Datos del padre: ',
+                                            'Teléfono de la madre: ',
                                             textAlign: TextAlign.left,
                                             style: TextStyle(color: Color(0xFF044086), fontSize: 18),
                                           ),
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
-                                              report.father_info,
+                                              reportCoord.motherPhoneNumber,
                                               textAlign: TextAlign.left,
                                               style: const TextStyle(color: Colors.black, fontSize: 18),
                                             ),
@@ -723,14 +765,33 @@ class _ReportDetails extends State<ReportDetails> {
                                         children: [
                                           const SizedBox(width: 35),
                                           const Text(
-                                            'Datos de los hermanos: ',
+                                            'Tiene hermanos: ',
                                             textAlign: TextAlign.left,
                                             style: TextStyle(color: Color(0xFF044086), fontSize: 18),
                                           ),
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
-                                              report.brothers_info,
+                                              reportCoord.hasSiblings,
+                                              textAlign: TextAlign.left,
+                                              style: const TextStyle(color: Colors.black, fontSize: 18),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(width: 35),
+                                          const Text(
+                                            'Información de hermanos: ',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(color: Color(0xFF044086), fontSize: 18),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              reportCoord.siblingDetails,
                                               textAlign: TextAlign.left,
                                               style: const TextStyle(color: Colors.black, fontSize: 18),
                                             ),
@@ -742,42 +803,7 @@ class _ReportDetails extends State<ReportDetails> {
                             ),
                             const SizedBox(
                               height: 25,
-                            ),
-                            const Text(
-                                'Sugerencia: ',
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    color: Color(0xFF044086),
-                                    fontSize: 18),
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              Text(
-                                report.final_tip,
-                                textAlign: TextAlign.left,
-                                style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 18),
-                              ),
-                            const Text(
-                                'Observaciones: ',
-                                    textAlign: TextAlign.left,
-                                    style: TextStyle(
-                                        color: Color(0xFF044086),
-                                        fontSize: 18),
-                                  ),
-                                  const SizedBox(
-                                    width: 10,
-                                  ),
-                                  Text(
-                                    report.observations,
-                                    textAlign: TextAlign.left,
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 18),
-                              ),
-                            
+                            ),                          
                             const Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
@@ -800,81 +826,94 @@ class _ReportDetails extends State<ReportDetails> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(
-                                          width: 35,
-                                        ),
-                                        const Text(
-                                          'Numero(s) de referencia: ',
-                                          textAlign: TextAlign.left,
-                                          style: TextStyle(
-                                              color: Color(0xFF044086),
-                                              fontSize: 18),
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        Text(
-                                          report.ref_cellphone,
-                                          textAlign: TextAlign.left,
-                                          style: const TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18),
-                                        ),
-                                      ],
-                                    ),
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(
+                                            width: 35,
+                                          ),
+                                          const Text(
+                                            'Email de referencia: ',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(
+                                                color: Color(0xFF044086),
+                                                fontSize: 18),
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Text(
+                                            reportCoord.email,
+                                            textAlign: TextAlign.left,
+                                            style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 18),
+                                          ),
+                                        ],
+                                      ),
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(
-                                          width: 35,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(width: 35),
+                                          const Text(
+                                            'Telefono del padre: ',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(color: Color(0xFF044086), fontSize: 18),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              reportCoord.fatherPhoneNumber,
+                                              textAlign: TextAlign.left,
+                                              style: const TextStyle(color: Colors.black, fontSize: 18),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(width: 35),
+                                            const Text(
+                                              'Telefono de la madre: ',
+                                              textAlign: TextAlign.left,
+                                              style: TextStyle(color: Color(0xFF044086), fontSize: 18),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                reportCoord.motherPhoneNumber,
+                                                textAlign: TextAlign.left,
+                                                style: const TextStyle(color: Colors.black, fontSize: 18),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const Text(
-                                          'Email de referencia: ',
-                                          textAlign: TextAlign.left,
-                                          style: TextStyle(
-                                              color: Color(0xFF044086),
-                                              fontSize: 18),
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        Text(
-                                          report.email,
-                                          textAlign: TextAlign.left,
-                                          style: const TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10), // Espacio entre las filas
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(
-                                          width: 35,
-                                        ),
-                                        const Text(
-                                          'Estado del reporte: ',
-                                          textAlign: TextAlign.left,
-                                          style: TextStyle(
-                                              color: Color(0xFF044086),
-                                              fontSize: 18),
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        Text(
-                                          report.status_report,
-                                          textAlign: TextAlign.left,
-                                          style: const TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18),
-                                        ),
-                                      ],
-                                    ),
+                                      const SizedBox(height: 10), // Espacio entre las filas
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(
+                                            width: 35,
+                                          ),
+                                          const Text(
+                                            'Teléfono familiar: ',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(
+                                                color: Color(0xFF044086),
+                                                fontSize: 18),
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Text(
+                                            reportCoord.familyPhoneNumber,
+                                            textAlign: TextAlign.left,
+                                            style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 18),
+                                          ),
+                                        ],
+                                      ),
                                   ],
                                 ),
                               ),
@@ -887,20 +926,20 @@ class _ReportDetails extends State<ReportDetails> {
                                   child: ElevatedButton(
                                     onPressed: () async {
                                       try {
-                                        await reportRemoteDatasourceImpl.updateReportStatus(
+                                        await reportCoordRemoteDatasourceImpl.updateReportCordStatus(
                                           widget.id,
-                                          'Coordinación',
+                                          'Administración',
                                         );
 
                                         setState(() {
-                                          report.status_report = 'Coordinación';
+                                          reportCoord.estadoRevisado = 'Administración';
                                         });
 
                                         showMessageDialog(
                                           context,
                                           'assets/ui/marque-el-circulo.png',
                                           'Correcto',
-                                          'Se ha actualizado el estado a "Coordinación"',
+                                          'Se ha actualizado el estado a "Administración"',
                                         );
                                       } catch (e) {
                                         showMessageDialog(
@@ -917,7 +956,7 @@ class _ReportDetails extends State<ReportDetails> {
                                       ),
                                     ),
                                     child: const Text(
-                                      'Actualizar a Coordinación',
+                                      'Actualizar a Administración',
                                       style: TextStyle(color: Colors.white),
                                     ),
                                   ),
@@ -925,12 +964,9 @@ class _ReportDetails extends State<ReportDetails> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 10),
                                   child: ElevatedButton(
-                                    onPressed: report.status_report != 'Administración' ? () => _showEditDialog(context) : null,
+                                    onPressed: reportCoord.estadoRevisado != 'Administración' ? () => _showEditDialog(context) : null,
                                     // Si el status del informe es "Administración", onPressed es null y el botón se deshabilita
-                                    child: const Text(
-                                      'Editar',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
+                                    child: const Text('Editar'),
                                     // El botón se deshabilita si el status del informe es "Administración"
                                     style: ButtonStyle(
                                       backgroundColor: MaterialStateProperty.resolveWith<Color>(
@@ -938,7 +974,7 @@ class _ReportDetails extends State<ReportDetails> {
                                           if (states.contains(MaterialState.disabled)) {
                                             return Colors.grey; // Color del botón cuando está deshabilitado
                                           }
-                                          return Color.fromARGB(255, 74, 121, 190); // Color del botón cuando está habilitado
+                                          return Colors.blue; // Color del botón cuando está habilitado
                                         },
                                       ),
                                     ),
@@ -975,8 +1011,8 @@ class _ReportDetails extends State<ReportDetails> {
                                                       child: ElevatedButton(
                                                         onPressed: () async {
                                                           try {
-                                                            await reportRemoteDatasourceImpl
-                                                                .deleteReport(widget.id);
+                                                            await reportCoordRemoteDatasourceImpl
+                                                                .deleteReportCord(widget.id);
                                                             Navigator.of(context).pop();
                                                             showMessageDialog(
                                                               context,
@@ -1052,7 +1088,7 @@ class _ReportDetails extends State<ReportDetails> {
             floatingActionButton: FloatingActionButton(
             onPressed: () async {
               
-              await generatePdf(context, report);
+              await generatePdf(context, reportCoord);
             },
             child: Icon(Icons.download),
           ),

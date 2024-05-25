@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pr_h23_irlandes_web/data/model/report_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:ui' as ui;
 
 /*
     Metodos necesarios para manejar los reportes de psicologia: crear, recuperar, etc.
@@ -42,7 +42,6 @@ class ReportRemoteDatasourceImpl extends ReportsRemoteDatasource {
   @override
   Future<List<ReportModel>> getReport() async {
     final reportDocs = await reportFirestoreRef.get();
-
     final reports = reportDocs.docs.map((e) {
       return e.data();
     });
@@ -91,14 +90,18 @@ class ReportRemoteDatasourceImpl extends ReportsRemoteDatasource {
     await reportDoc.delete();
   }
 
-  Future<void> updateInterviewDateTime(String reportId, DateTime newDateTime) async {
+  Future<void> updateInterviewDateTime(String postulationId, DateTime newDateTime, String newTime) async {
     try {
       await FirebaseFirestore.instance
-          .collection('Postulations')
-          .doc(reportId)
-          .update({'interview_date': Timestamp.fromDate(newDateTime)});
+          .collection('Psychology_Reports')
+          .doc(postulationId)
+          .update({
+            'interview_date': Timestamp.fromDate(newDateTime),
+            'interview_hour': newTime,
+          });
     } catch (e) {
-      throw Exception('Error al actualizar la fecha y hora de la entrevista');
+      //throw Exception('Error al actualizar la fecha y hora de la entrevista');
+      throw Exception(e);
     }
   }
 }

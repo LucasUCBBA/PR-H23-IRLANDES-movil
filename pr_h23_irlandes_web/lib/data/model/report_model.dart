@@ -8,6 +8,10 @@ class ReportModel {
   String fullname;
   DateTime interview_date;
   String interview_hour;
+  DateTime interview_date_coord;
+  String interview_hour_coord;
+  String ci;
+  String email;
   DateTime birth_day;
   String cronological_age;
   String familiar_details;
@@ -21,12 +25,17 @@ class ReportModel {
   String grade;
   String level;
   String status_report;
+  final String estadoConfirmado;
 
   ReportModel({
     this.id,
     required this.fullname,
     required this.interview_date,
     required this.interview_hour,
+    required this.interview_date_coord,
+    required this.interview_hour_coord,
+    required this.ci,
+    required this.email,
     required this.birth_day,
     required this.cronological_age,
     required this.familiar_details,
@@ -40,6 +49,7 @@ class ReportModel {
     required this.grade,
     required this.level,
     required this.status_report,
+    this.estadoConfirmado = 'Pendiente'
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json, String id) {
@@ -48,6 +58,10 @@ class ReportModel {
       fullname: json['fullname'] as String,
       interview_date: (json['interview_date'] as Timestamp).toDate(),
       interview_hour: json['interview_hour'] as String,
+      interview_date_coord: (json['interview_date_coord'] as Timestamp).toDate(),
+      interview_hour_coord: json['interview_hour_coord'] as String,
+      ci: json['ci'] as String,
+      email: json ['email'] as String,
       birth_day: (json['birth_day'] as Timestamp).toDate(),
       cronological_age: json['cronological_age'] as String,
       familiar_details: json['familiar_details'] as String,
@@ -61,6 +75,7 @@ class ReportModel {
       grade: json['grade'] as String,
       level: json['level'] as String,
       status_report: json['status_report'] as String,
+       estadoConfirmado: json['estadoConfirmado'] ?? 'pendiente',
     );
   }
 
@@ -70,6 +85,10 @@ class ReportModel {
       'fullname': fullname,
       'interview_date': Timestamp.fromDate(interview_date),
       'interview_hour': interview_hour,
+      'interview_date_coord': Timestamp.fromDate(interview_date_coord),
+      'interview_hour_coord': interview_hour_coord,
+      'ci': ci,
+      'email': email,
       'birth_day': Timestamp.fromDate(birth_day),
       'cronological_age': cronological_age,
       'familiar_details': familiar_details,
@@ -83,6 +102,7 @@ class ReportModel {
       'grade': grade,
       'level': level,
       'status_report': status_report,
+       'estadoConfirmado': estadoConfirmado,
     };
   }
 }

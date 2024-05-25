@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
+import 'dart:ui' as ui;
 
 abstract class PersonaDataSource {
   Future<void> registrarUsuario(PersonaModel persona);
@@ -126,12 +127,23 @@ class PersonaDataSourceImpl extends PersonaDataSource {
   }
   */
 
+  
+
   Future<void> updateUserToken(PersonaModel persona) async {
+  try {
     String? token = await _messaging.getToken();
-    persona.token = token.toString();
-    // Utilizamos el método `set` para actualizar un documento existente en Firestore
-    await personFirestoreRef.doc(persona.id).update(persona.toJson());
+    if (token != null) {
+      persona.token = token;
+      await personFirestoreRef.doc(persona.id).update(persona.toJson());
+    } else {
+      throw Exception("El token de mensajería es nulo");
+    }
+  } catch (e) {
+    print('Error actualizando el token del usuario: $e');
+    // Manejar el error de alguna manera, como mostrar un mensaje al usuario
   }
+}
+
 
   Future<PersonaModel?> getPersonFromId(String id) async {
     try {

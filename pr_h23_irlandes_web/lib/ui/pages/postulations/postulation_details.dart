@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'package:fluttertoast/fluttertoast.dart';
+
 
 class PostulationDetails extends StatefulWidget {
   final String id;
@@ -159,30 +161,40 @@ class _PostulationDetails extends State<PostulationDetails> {
                             ),
                             InkWell(
                               onTap: () async {
-                                final selectedDateTime = await showDatePicker(
-                                  context: context,
-                                  initialDate: postulation.interview_date,
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime(2100),
-                                );
+                                try {
+                                  // Definir una fecha inicial que sea un punto de referencia en el pasado
+                                  DateTime firstAllowedDate = DateTime(2000);
 
-                                if (selectedDateTime != null) {
-                                  final selectedTime = await showTimePicker(
+                                  final selectedDate = await showDatePicker(
                                     context: context,
-                                    initialTime: TimeOfDay.fromDateTime(postulation.interview_date),
+                                    initialDate: postulation.interview_date.isBefore(firstAllowedDate)
+                                        ? DateTime.now()
+                                        : postulation.interview_date,
+                                    firstDate: firstAllowedDate,
+                                    lastDate: DateTime(2100),
                                   );
 
-                                  if (selectedTime != null) {
-                                    setState(() {
-                                      _newInterviewDateTime = DateTime(
-                                        selectedDateTime.year,
-                                        selectedDateTime.month,
-                                        selectedDateTime.day,
-                                        selectedTime.hour,
-                                        selectedTime.minute,
-                                      );
-                                    });
+                                  if (selectedDate != null) {
+                                    final selectedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.fromDateTime(postulation.interview_date),
+                                    );
+
+                                    if (selectedTime != null) {
+                                      setState(() {
+                                        _newInterviewDateTime = DateTime(
+                                          selectedDate.year,
+                                          selectedDate.month,
+                                          selectedDate.day,
+                                          selectedTime.hour,
+                                          selectedTime.minute,
+                                        );
+                                      });
+                                    }
                                   }
+                                } catch (e) {
+                                  print('Error selecting date/time: $e');
+                                  // Optionally, show a dialog to inform the user about the error
                                 }
                               },
                               child: _newInterviewDateTime != null
@@ -190,9 +202,8 @@ class _PostulationDetails extends State<PostulationDetails> {
                                 : const Text('Seleccionar nueva fecha y hora'),
                             ),
                             Text(
-                              ('${DateFormat('dd/MM/yyyy').format(postulation.interview_date)} ${postulation.interview_hour}'),
-                              style: const TextStyle(
-                                  color: Colors.black, fontSize: 18),
+                              '${DateFormat('dd/MM/yyyy').format(postulation.interview_date)} ${postulation.interview_hour}',
+                              style: const TextStyle(color: Colors.black, fontSize: 18),
                             ),
                             ElevatedButton(
                               onPressed: _newInterviewDateTime != null
@@ -202,26 +213,33 @@ class _PostulationDetails extends State<PostulationDetails> {
                                       await postulationRemoteDatasourceImpl.updateInterviewDateTime(
                                         widget.id,
                                         _newInterviewDateTime!,
+                                        TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context),
                                       );
 
                                       // Actualizar el estado del widget con la nueva fecha y hora
                                       setState(() {
                                         postulation.interview_date = _newInterviewDateTime!;
-                                        postulation.interview_hour = _newInterviewDateTime!.toString().split(' ')[1];
+                                        postulation.interview_hour = TimeOfDay.fromDateTime(_newInterviewDateTime!).format(context);
                                         _newInterviewDateTime = null;
                                       });
-                                    } catch (e) {
-                                      showMessageDialog(
-                                        context,
-                                        'assets/ui/circulo-cruzado.png',
-                                        'Error',
-                                        'Ha ocurrido un error inesperado',
+                                      Fluttertoast.showToast(
+                                        msg: 'La fecha de la entrevista se ha actualizado correctamente',
+                                        toastLength: Toast.LENGTH_SHORT,
+                                        gravity: ToastGravity.BOTTOM,
+                                        timeInSecForIosWeb: 1,
+                                        backgroundColor: Colors.green,
+                                        textColor: Colors.white,
+                                        fontSize: 16.0,
                                       );
+                                    } catch (e) {
+                                      print('Error updating interview date/time: $e');
+                                      // Optionally, show a dialog to inform the user about the error
                                     }
                                   }
                                 : null,
                               child: const Text('Guardar cambios'),
                             ),
+
                             const SizedBox(
                               height: 10,
                             ),

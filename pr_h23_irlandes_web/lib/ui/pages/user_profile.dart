@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
 import 'package:pr_h23_irlandes_web/data/remote/user_remote_datasource.dart';
 import 'package:pr_h23_irlandes_web/infraestructure/global/global_methods.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pr_h23_irlandes_web/ui/pages/edit_profile.dart';
 import 'package:pr_h23_irlandes_web/ui/pages/menu_options.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/app_bar_custom.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_coord.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_psico.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/app_bar_custom_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,7 +21,7 @@ class UserProfilePage extends StatefulWidget {
 
 class _UserProfilePage extends State<UserProfilePage>{
   PersonaModel? persona;
-  String personaId = '';
+  String userRol = '', personaId = '';
   final PersonaDataSourceImpl _usuarioDataSource = PersonaDataSourceImpl();
 
   @override
@@ -28,13 +32,23 @@ class _UserProfilePage extends State<UserProfilePage>{
 
   void getId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      personaId = prefs.getString('personId')!;
-    });
+    personaId = prefs.getString('personId')!;
+    persona = await _usuarioDataSource.getPersonFromId(personaId);
+    userRol = persona?.rol ?? '';
 
     // Luego, puedes llamar a la función para obtener los datos del usuario
     loadUserData();
   }
+
+  Widget getDrawer(String userRol) {
+  if (userRol == 'coordinacion_uno' || userRol == 'coordinacion_dos') {
+    return CustomDrawerCoord();
+  } else if (userRol == 'psicologia_uno' || userRol == 'psicologia_dos') {
+    return CustomDrawerPsico();
+  } else {
+    return CustomDrawer();
+  }
+}
 
   void loadUserData() async {
     try {
@@ -71,10 +85,15 @@ class _UserProfilePage extends State<UserProfilePage>{
     });
     return Scaffold(
         backgroundColor: GlobalMethods.secondaryColor,
-        appBar: const AppBarCustomProfile(
-          title: 'Perfil de Usuario',
+        appBar: AppBar(
+          title: Text('Perfil de Usuario',
+            style: GoogleFonts.barlow(
+                textStyle: const TextStyle(
+                    color: Color(0xFF3D5269),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold)))
         ),
-        drawer: const OptionsMenuPage(),
+        drawer: getDrawer(userRol),
         body: Align(
             alignment: Alignment.topCenter,
             child: Padding(

@@ -1,83 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:pr_h23_irlandes_web/data/model/report_model.dart';
-import 'package:pr_h23_irlandes_web/data/remote/reports_remote_datasource.dart';
-import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_psico.dart';
-import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_coord.dart';
+import 'package:pr_h23_irlandes_web/data/model/Coordinacion_Reports_model.dart';
+import 'package:pr_h23_irlandes_web/data/remote/Coordinacion_remote_datasource.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/custom_text_field.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_coord.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_psico.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
 import 'package:pr_h23_irlandes_web/data/remote/user_remote_datasource.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-/*
-    Pagina donde se listan los reportes psicologicos, de manera similar a las postulaciones.
-    Falta un boton para editar y otro para el pdf.
-    Tambien añadir boton de cambiar estado del reporte (si sigue en psicologia o ya pasa a siguiente fase)
-*/
-
-
-class ReportPage extends StatefulWidget {
-  const ReportPage({super.key});
+class CoordinacionPage extends StatefulWidget {
+  const CoordinacionPage({super.key});
 
   @override
-  State<ReportPage> createState() => _ReportPage();
+  State<CoordinacionPage> createState() => _CoordinacionPageState();
 }
 
-class _ReportPage extends State<ReportPage> {
-  ReportRemoteDatasourceImpl reportRemoteDatasourceImpl =
-      ReportRemoteDatasourceImpl();
-  List<ReportModel> reports = [], filterList = [];
+class _CoordinacionPageState extends State<CoordinacionPage> {
+  CordinacionRemoteDatasourceImpl CoordinacionRemoteDatasourceImpl =
+      CordinacionRemoteDatasourceImpl();
+  List<CoordinacionModel> Coordinacions = [], filterList = [];
   final PersonaDataSourceImpl personaDataSource = PersonaDataSourceImpl();
   PersonaModel? usuario;
-  bool isLoading = true;
+  bool isLoading = false;
   bool isSelected = true;
   TextEditingController searchController = TextEditingController();
   String level = '', grade = '', status = '', userRol = '', personaId = '';
   List<String> gradeList = ['Cualquiera'];
   List<String> levelList = ['Cualquiera'];
 
-  @override
+   @override
   void initState() {
-  super.initState();
-  getId().then((_) {
-    // Configurar levelList basado en el rol del usuario
-    _configureListsAndDefaultValues();
-    setState(() {
-      status = 'Pendiente';
-      reportRemoteDatasourceImpl.getReport().then((value) {
-        setState(() {
-          isLoading = true;
-          reports = value;
-          // Filtrar los reportes según el nivel del usuario
-          filterList = FilterReportsList(status, level, grade, searchController.text.trim(), userRol);
-          isLoading = false;
+    super.initState();
+    getId().then((_) {
+      // Configurar levelList basado en el rol del usuario
+      _configureListsAndDefaultValues();
+      setState(() {
+        status = 'pendiente';
+        CoordinacionRemoteDatasourceImpl.getReportCord().then((value) {
+          setState(() {   
+            isLoading = true;
+            Coordinacions = value;
+            // Filtrar los reportes según el nivel del usuario
+            filterList = FilterReportsList(status, level, grade, searchController.text.trim(), userRol);
+            isLoading = false;
+          });
         });
       });
     });
-  });
-}
-void _configureListsAndDefaultValues() {
-  if (userRol == 'psicologia_uno' || userRol == 'coordinacion_uno') {
-    levelList = ['Cualquiera', 'Inicial', 'Primaria'];
-    level = 'Inicial';
-  } else if (userRol == 'psicologia_dos' || userRol == 'coordinacion_dos') {
-    levelList = ['Cualquiera', 'Secundaria'];
-    level = 'Secundaria';
-  }
-}
-
-  Future<void> getId() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    personaId = prefs.getString('personId')!;
-    usuario = await personaDataSource.getPersonFromId(personaId);
-    userRol = usuario?.rol ?? '';
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  }  
+  
+    void _configureListsAndDefaultValues() {
+      if (userRol == 'coordinacion_uno') {
+        levelList = ['Cualquiera', 'Inicial', 'Primaria'];
+        level = 'Inicial';
+      } else if (userRol == 'coordinacion_dos') {
+        levelList = ['Cualquiera', 'Secundaria'];
+        level = 'Secundaria';
+      }
+    }
 
   InputDecoration customDecoration(String label) {
     return InputDecoration(
@@ -101,42 +83,58 @@ void _configureListsAndDefaultValues() {
       ),
     );
   }
-
-  // ignore: non_constant_identifier_names
-  List<ReportModel> FilterReportsList(
+  List<CoordinacionModel> FilterReportsList(
   String status,
   String? level,
   String? grade,
   String? searchValue,
   String userRol,
 ) {
-  return reports.where((report) {
-    bool matchesLevel = level == null || level.isEmpty || report.level == level || level == 'Cualquiera';
-    bool matchesGrade = grade == null || grade.isEmpty || report.grade == grade || grade == 'Cualquiera';
-    bool matchesStudent = searchValue == null || searchValue.isEmpty || report.fullname.toUpperCase().contains(searchValue.toUpperCase());
+  return Coordinacions.where((Coordinacion) {
+    bool matchesLevel = level == null || level.isEmpty || Coordinacion.level == level || level == 'Cualquiera';
+    bool matchesGrade = grade == null || grade.isEmpty || Coordinacion.course == grade || grade == 'Cualquiera';
+    bool matchesStudent = searchValue == null || searchValue.isEmpty || Coordinacion.studentFullName.toUpperCase().contains(searchValue.toUpperCase());
 
     bool matchesUserRole = true;
-    if (userRol == 'psicologia_uno' || userRol == 'coordinacion_uno') {
-      matchesUserRole = report.level != 'Secundaria';
-    } else if (userRol == 'psicologia_dos' || userRol == 'coordinacion_dos') {
-      matchesUserRole = report.level == 'Secundaria';
+    if (userRol == 'coordinacion_uno') {
+      matchesUserRole = Coordinacion.level != 'Secundaria';
+    } else if (userRol == 'coordinacion_dos') {
+      matchesUserRole = Coordinacion.level == 'Secundaria';
     }
 
-    return matchesLevel && matchesGrade && matchesStudent && matchesUserRole;
+    bool matchesStatus = Coordinacion.estadoConfirmado == status;
+    return matchesLevel && matchesGrade && matchesStudent && matchesUserRole && matchesStatus;
   }).toList();
 }
+  Future<void> getId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    personaId = prefs.getString('personId')!;
+    usuario = await personaDataSource.getPersonFromId(personaId);
+    userRol = usuario?.rol ?? '';
+  }
+
+
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Administración de Informes - Psicología',
-            style: GoogleFonts.barlow(
-                textStyle: const TextStyle(
-                    color: Color(0xFF3D5269),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold))),
+        title: Text(
+          'Administración de Informes - Coordinacion',
+          style: GoogleFonts.barlow(
+            textStyle: const TextStyle(
+              color: Color(0xFF3D5269),
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
         backgroundColor: Colors.white,
         toolbarHeight: 75,
         elevation: 0,
@@ -145,7 +143,8 @@ void _configureListsAndDefaultValues() {
             builder: (context) => IconButton(
               iconSize: 50,
               icon: const Image(
-                  image: AssetImage('assets/ui/barra-de-menus.png')),
+                image: AssetImage('assets/ui/barra-de-menus.png'),
+              ),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -155,19 +154,21 @@ void _configureListsAndDefaultValues() {
         ),
         actions: [
           IconButton(
-              iconSize: 2,
-              icon: Image.asset(
-                'assets/ui/home.png',
-                width: 50,
-              ),
-              onPressed: () {
-                Navigator.pushNamed(context, '/notice_main');
-              })
+            iconSize: 50,
+            icon: Image.asset(
+              'assets/ui/home.png',
+              width: 50,
+            ),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notice_main');
+            },
+          ),
         ],
       ),
-      drawer: userRol == 'psicologia_uno' || userRol == 'psicologia_dos' ? CustomDrawerPsico() : CustomDrawerCoord(),
+      //Manejo de menus segun roles
+      drawer: userRol == 'coordinacion_uno' || userRol == 'coordinacion_dos' ? CustomDrawerCoord() : CustomDrawerPsico(),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : Center(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -182,9 +183,7 @@ void _configureListsAndDefaultValues() {
                     ),
                     child: Column(
                       children: [
-                        const SizedBox(
-                          height: 10,
-                        ),
+                        const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -194,27 +193,26 @@ void _configureListsAndDefaultValues() {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                    iconSize: 2,
-                                    icon: Image.asset(
-                                      'assets/ui/reserva.png',
-                                      width: 50,
-                                    ),
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                          context, '/register_report');
-                                    }),
-                                const Text('Registrar Informe',
-                                    style: TextStyle(fontSize: 16)),
+                                  iconSize: 50,
+                                  icon: Image.asset(
+                                    'assets/ui/reserva.png',
+                                    width: 50,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                        context, '/Coordination_Register');
+                                  },
+                                ),
+                                const Text(
+                                  'Registrar Informe',
+                                  style: TextStyle(fontSize: 16),
+                                ),
                               ],
                             ),
-                            const SizedBox(
-                              width: 20,
-                            ),
+                            const SizedBox(width: 20),
                           ],
                         ),
-                        const SizedBox(
-                          height: 10,
-                        ),
+                        const SizedBox(height: 10),
                         const Text(
                           'Informes',
                           textAlign: TextAlign.center,
@@ -225,6 +223,7 @@ void _configureListsAndDefaultValues() {
                           ),
                         ),
                         const SizedBox(height: 10),
+                        
                         Padding(
                           padding: const EdgeInsets.only(left: 50, right: 50),
                           child: Row(
@@ -323,6 +322,76 @@ void _configureListsAndDefaultValues() {
                         const SizedBox(
                           height: 10,
                         ),
+                        //confirmado y pendiente 
+                          Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                               style: ButtonStyle(
+                                backgroundColor: isSelected
+                                    ? MaterialStateProperty.all(
+                                        const Color(0xFF044086))
+                                    : MaterialStateProperty.all(Colors.grey),
+                                shape: MaterialStateProperty.all(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                ),
+                              ),
+                              onPressed: () {
+                                if (!isSelected) {
+                                  isSelected = !isSelected;
+                                  status = 'pendiente';
+                                  setState(() {});
+                                  filterList = FilterReportsList(
+                                    status,
+                                    level,
+                                    grade,
+                                    searchController.text.trim(),
+                                    userRol,
+                                  );
+                                }
+                                setState(() {});
+                              },
+                              child: const Text('Pendientes', style: TextStyle(color: Colors.white)),
+                            ),
+                            ElevatedButton(
+                               style: ButtonStyle(
+                                backgroundColor: !isSelected
+                                    ? MaterialStateProperty.all(
+                                        const Color(0xFF044086))
+                                    : MaterialStateProperty.all(Colors.grey),
+                                shape: MaterialStateProperty.all(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                ),
+                              ),
+                              onPressed: () {
+                                if (isSelected) {
+                                  isSelected = !isSelected;
+                                  status = 'Confirmado';
+                                  setState(() {});
+                                  filterList = FilterReportsList(
+                                    status,
+                                    level,
+                                    grade,
+                                    searchController.text.trim(),
+                                    userRol,
+                                  );
+                                }
+                                setState(() {});
+                              },
+                              child: const Text('Confirmadas', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+
+
+                        //listado
                         Expanded(
                           child: Container(
                             width: constraints.maxWidth * 0.5,
@@ -338,7 +407,7 @@ void _configureListsAndDefaultValues() {
                               child: filterList.isEmpty
                                 ? const Center(
                                     child: Text(
-                                      'No hay informes',
+                                      'No hay informes Coordinacion',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                           color: Color(0xFF044086),
@@ -369,7 +438,7 @@ void _configureListsAndDefaultValues() {
                                                     fontWeight:
                                                         FontWeight.bold))),
                                         DataColumn(
-                                            label: Text('Fecha de entrevista',
+                                            label: Text('Fecha de Cordinacion',
                                                 style: TextStyle(
                                                     color: Color(0xFF044086),
                                                     fontWeight:
@@ -382,18 +451,18 @@ void _configureListsAndDefaultValues() {
                                                         FontWeight.bold))),
                                         DataColumn(label: Text('')),
                                       ],
-                                      rows: filterList.map((report) {
+                                      rows: filterList.map((Coordinacion) {
                                         return DataRow(
                                           cells: [
                                             DataCell(Text(
-                                                '${report.fullname}')),
-                                            DataCell(Text(report.level)),
-                                            DataCell(Text(report.grade)),
+                                                '${Coordinacion.studentFullName}')),
+                                            DataCell(Text(Coordinacion.level)),
+                                            DataCell(Text(Coordinacion.course)),
                                             DataCell(Text(
                                                 DateFormat('dd/MM/yyyy')
-                                                    .format(report
-                                                        .interview_date))),
-                                            DataCell(Text(report.status_report)),
+                                                    .format(Coordinacion
+                                                        .interview_date_cord))),
+                                            DataCell(Text(Coordinacion.estadoRevisado)),
                                             DataCell(
                                               ElevatedButton(
                                                 onPressed: () async {
@@ -401,18 +470,18 @@ void _configureListsAndDefaultValues() {
                                                       await Navigator.of(
                                                               context)
                                                           .pushNamed(
-                                                              '/report_details',
+                                                              '/report_coordinacion_details',
                                                               arguments: {
-                                                        'id': report.id
+                                                        'id': Coordinacion.id
                                                       });
                                                   if (recargar != null) {
                                                     setState(() {
                                                       isLoading = true;
                                                     });
-                                                    reportRemoteDatasourceImpl
-                                                        .getReport()
+                                                    CoordinacionRemoteDatasourceImpl
+                                                        .getReportCord()
                                                         .then((value) => {
-                                                              reports =
+                                                              Coordinacions =
                                                                   value,
                                                               level = '',
                                                               grade = '',
@@ -449,6 +518,9 @@ void _configureListsAndDefaultValues() {
                         const SizedBox(
                           height: 5,
                         )
+
+
+
                       ],
                     ),
                   );

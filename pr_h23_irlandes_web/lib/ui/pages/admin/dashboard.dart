@@ -382,6 +382,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                       var bytes = utf8.encode(controllerName.text+controllerFirstSurname.text+controllerCI.text);
                                       var digest = sha256.convert(bytes);
                                       final person = PersonaModel(
+                                        //Generación de credenciales
                                         username: controllerFirstSurname.text[0].toUpperCase()+ controllerSecondSurname.text[0].toUpperCase()+ controllerName.text[0].toUpperCase(), 
                                         password: digest.toString(), 
                                         rol: controllerRole.text, 

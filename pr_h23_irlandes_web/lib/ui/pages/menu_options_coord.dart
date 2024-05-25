@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /*
-    Menu personalizado para el rol de psicologia
+    Menu personalizado para el rol de coordinacion
 */
 
-class OptionsMenuPagePsico extends StatelessWidget {
-  const OptionsMenuPagePsico({super.key});
+class OptionsMenuPageCoord extends StatelessWidget {
+  const OptionsMenuPageCoord({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +54,14 @@ class OptionsMenuPagePsico extends StatelessWidget {
               onPressed: () {
                 //Navigator.push(context, MaterialPageRoute(builder: (context) => Profile()));
                 Navigator.pushNamed(context, '/report_management');
+              },
+            ),
+            CardOption(
+              title: 'Administración de informes - Coordinación',
+              imageUrl: 'cuaderno-alternativo',
+              onPressed: () {
+                //Navigator.push(context, MaterialPageRoute(builder: (context) => Profile()));
+                Navigator.pushNamed(context, '/Coordination_Page');
               },
             )
           ],

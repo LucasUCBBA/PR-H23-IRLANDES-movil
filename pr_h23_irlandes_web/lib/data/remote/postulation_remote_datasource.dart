@@ -82,14 +82,18 @@ class PostulationRemoteDatasourceImpl extends PostulationRemoteDatasource {
     await postulationDoc.delete();
   }
 
-  Future<void> updateInterviewDateTime(String postulationId, DateTime newDateTime) async {
+  Future<void> updateInterviewDateTime(String postulationId, DateTime newDateTime, String newTime) async {
     try {
       await FirebaseFirestore.instance
           .collection('Postulations')
           .doc(postulationId)
-          .update({'interview_date': Timestamp.fromDate(newDateTime)});
+          .update({
+            'interview_date': Timestamp.fromDate(newDateTime),
+            'interview_hour': newTime,
+          });
     } catch (e) {
-      throw Exception('Error al actualizar la fecha y hora de la entrevista');
+      //throw Exception('Error al actualizar la fecha y hora de la entrevista');
+      throw Exception(e);
     }
   }
 }

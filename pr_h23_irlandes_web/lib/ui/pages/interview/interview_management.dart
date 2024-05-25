@@ -5,6 +5,11 @@ import 'package:pr_h23_irlandes_web/data/model/postulation_model.dart';
 import 'package:pr_h23_irlandes_web/data/remote/postulation_remote_datasource.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer.dart';
 import 'package:pr_h23_irlandes_web/ui/widgets/custom_text_field.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_coord.dart';
+import 'package:pr_h23_irlandes_web/ui/widgets/custom_drawer_psico.dart';
+import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
+import 'package:pr_h23_irlandes_web/data/remote/user_remote_datasource.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class InterviewManagement extends StatefulWidget {
   const InterviewManagement({super.key});
@@ -12,6 +17,8 @@ class InterviewManagement extends StatefulWidget {
   @override
   State<InterviewManagement> createState() => _InterviewManagement();
 }
+
+
 
 class _InterviewManagement extends State<InterviewManagement> {
   PostulationRemoteDatasourceImpl postulationRemoteDatasourceImpl =
@@ -22,11 +29,19 @@ class _InterviewManagement extends State<InterviewManagement> {
   TextEditingController searchController = TextEditingController();
   String level = '', grade = '', status = '';
   List<String> gradeList = ['Cualquiera'];
+  final PersonaDataSourceImpl personaDataSource = PersonaDataSourceImpl();
+  PersonaModel? usuario;
+  String userRol = '', personaId = '';
 
   @override
   void initState() {
-    status = 'Pendiente';
-    postulationRemoteDatasourceImpl.getPostulations().then((value) => {
+    super.initState();
+    getId().then((_) {
+      // Configurar levelList basado en el rol del usuario
+      
+      setState(() {
+        status = 'Pendiente';
+         postulationRemoteDatasourceImpl.getPostulations().then((value) => {
           isLoading = true,
           postulations = value,
           filterList = FilterPostulationsList(
@@ -38,12 +53,20 @@ class _InterviewManagement extends State<InterviewManagement> {
               })
             }
         });
-    super.initState();
+      });
+    }); 
   }
 
   @override
   void dispose() {
     super.dispose();
+  }
+
+  Future<void> getId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    personaId = prefs.getString('personId')!;
+    usuario = await personaDataSource.getPersonFromId(personaId);
+    userRol = usuario?.rol ?? '';
   }
 
   InputDecoration customDecoration(String label) {
@@ -98,6 +121,16 @@ class _InterviewManagement extends State<InterviewManagement> {
     }).toList();
   }
 
+  Widget getDrawer(String userRol) {
+  if (userRol == 'coordinacion_uno' || userRol == 'coordinacion_dos') {
+    return CustomDrawerCoord();
+  } else if (userRol == 'psicologia_uno' || userRol == 'psicologia_dos') {
+    return CustomDrawerPsico();
+  } else {
+    return CustomDrawer();
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,7 +171,7 @@ class _InterviewManagement extends State<InterviewManagement> {
               })
         ],
       ),
-      drawer: CustomDrawer(),
+      drawer: getDrawer(userRol),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Center(
