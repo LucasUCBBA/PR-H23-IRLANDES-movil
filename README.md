@@ -1,2 +1,1 @@
-# PR-H23-IRLANDES-movil
-Proyecto Col. IRLANDES Gestión Notificaciones Móviles
+Codigo provisional que incluye el apartado de psicologia entre otros

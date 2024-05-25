@@ -942,6 +942,20 @@ class _ReportDetails extends State<ReportDetails> {
                                         },
                                       ),
                                     ),
+                                    onPressed: report.status_report != 'Administración' ? () => _showEditDialog(context) : null,
+                                    // Si el status del informe es "Administración", onPressed es null y el botón se deshabilita
+                                    child: const Text('Editar'),
+                                    // El botón se deshabilita si el status del informe es "Administración"
+                                    style: ButtonStyle(
+                                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                                        (Set<MaterialState> states) {
+                                          if (states.contains(MaterialState.disabled)) {
+                                            return Colors.grey; // Color del botón cuando está deshabilitado
+                                          }
+                                          return Colors.blue; // Color del botón cuando está habilitado
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 Padding(

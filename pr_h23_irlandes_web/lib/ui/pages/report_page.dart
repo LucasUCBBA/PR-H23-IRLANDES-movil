@@ -72,6 +72,39 @@ void _configureListsAndDefaultValues() {
     personaId = prefs.getString('personId')!;
     usuario = await personaDataSource.getPersonFromId(personaId);
     userRol = usuario?.rol ?? '';
+  super.initState();
+  getId().then((_) {
+    // Configurar levelList basado en el rol del usuario
+    _configureListsAndDefaultValues();
+    setState(() {
+      status = 'Pendiente';
+      reportRemoteDatasourceImpl.getReport().then((value) {
+        setState(() {
+          isLoading = true;
+          reports = value;
+          // Filtrar los reportes según el nivel del usuario
+          filterList = FilterReportsList(status, level, grade, searchController.text.trim(), userRol);
+          isLoading = false;
+        });
+      });
+    });
+  });
+}
+void _configureListsAndDefaultValues() {
+  if (userRol == 'psicologia_uno') {
+    levelList = ['Cualquiera', 'Inicial', 'Primaria'];
+    level = 'Inicial';
+  } else if (userRol == 'psicologia_dos') {
+    levelList = ['Cualquiera', 'Secundaria'];
+    level = 'Secundaria';
+  }
+}
+
+  Future<void> getId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    personaId = prefs.getString('personId')!;
+    usuario = await personaDataSource.getPersonFromId(personaId);
+    userRol = usuario?.rol ?? '';
   }
 
   @override
@@ -119,6 +152,27 @@ void _configureListsAndDefaultValues() {
     if (userRol == 'psicologia_uno' || userRol == 'coordinacion_uno') {
       matchesUserRole = report.level != 'Secundaria';
     } else if (userRol == 'psicologia_dos' || userRol == 'coordinacion_dos') {
+      matchesUserRole = report.level == 'Secundaria';
+    }
+
+    return matchesLevel && matchesGrade && matchesStudent && matchesUserRole;
+  }).toList();
+}
+  String status,
+  String? level,
+  String? grade,
+  String? searchValue,
+  String userRol,
+) {
+  return reports.where((report) {
+    bool matchesLevel = level == null || level.isEmpty || report.level == level || level == 'Cualquiera';
+    bool matchesGrade = grade == null || grade.isEmpty || report.grade == grade || grade == 'Cualquiera';
+    bool matchesStudent = searchValue == null || searchValue.isEmpty || report.fullname.toUpperCase().contains(searchValue.toUpperCase());
+
+    bool matchesUserRole = true;
+    if (userRol == 'psicologia_uno') {
+      matchesUserRole = report.level != 'Secundaria';
+    } else if (userRol == 'psicologia_dos') {
       matchesUserRole = report.level == 'Secundaria';
     }
 
