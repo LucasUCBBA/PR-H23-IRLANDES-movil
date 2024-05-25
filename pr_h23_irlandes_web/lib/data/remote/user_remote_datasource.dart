@@ -1,9 +1,7 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:pr_h23_irlandes_web/data/model/person_model.dart';
-import 'dart:ui' as ui;
+
 
 abstract class PersonaDataSource {
   Future<void> registrarUsuario(PersonaModel persona);
